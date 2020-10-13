@@ -1,0 +1,25 @@
+sudo: required
+services:
+  - docker
+
+# use dev dockerfile b/c prod one doesn't copy over tests
+before_install:
+  - docker build -t franksu1996/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true franksu1996/react-test npm test
+
+# don't have to specify dockerfile b/c uses prod Dockerfile
+after_success:
+  - docker build -t franksu1996/multi-client ./client
+  - docker build -t franksu1996/multi-nginx ./nginx
+  - docker build -t franksu1996/multi-server ./server
+  - docker build -t franksu1996/multi-worker ./worker
+
+  # log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push franksu1996/multi-client
+  - docker push franksu1996/multi-nginx
+  - docker push franksu1996/multi-server
+  - docker push franksu1996/multi-worker
